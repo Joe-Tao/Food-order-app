@@ -16,13 +16,13 @@ export default function RootLayout({ children }) {
     <html lang="en" className=" scroll-smooth">
       <body className={roboto.className}>
         <main className="max-w-4xl mx-auto p-4">
-            {/* <AppProvider> */}
+            <AppProvider>
               <Header />
               {children}
               <footer className="border-t p-8 mt-16 text-center">
                 &copy; 2024 All rights reserved by LI TAO
               </footer>
-            {/* </AppProvider> */}
+            </AppProvider>
         </main>
       </body>
     </html>
