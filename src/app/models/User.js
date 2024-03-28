@@ -8,6 +8,9 @@ const UserSchema = new Schema({
     password: {
         type: String, 
         },
+    image: {type: String},
+    phone: {type: String},
+    
 }, {timestamps: true});
 
 // UserSchema.pre('save', (next, ...rest) => {
