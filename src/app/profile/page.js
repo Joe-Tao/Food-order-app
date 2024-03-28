@@ -3,35 +3,74 @@ import { useSession } from "next-auth/react";
 import { redirect } from "next/dist/server/api-utils";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import InfoBox from "@/components/layout/InfoBox";
+import SuccessBox from "@/components/layout/SuccessBox";
+import toast from "react-hot-toast";
+import { resolve } from "path";
+import { rejects } from "assert";
+
+import UserTabs from "@/components/layout/UserTabs";
 
 export default function ProfilePage(){
     const session = useSession();
-    const {status} = session;
     const [userName, setUserName] = useState('');
-    const [saved, setSaved] = useState(false);
-    const [IsSaving, setIsSaving] = useState(false);
     const [image, setImage] = useState('');
+
+    const [phone, setPhone] = useState('');
+    const [streetAddress, setStreetAddress] = useState('');
+    const [postalCode, setPostalCode] = useState('');
+    const [city, setCity] = useState('');
+    const [country, setCountry] = useState('');
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [profileFetched, setProfileFetched] = useState(false);
+    const {status} = session;
 
     useEffect(() => {
         if (status === 'authenticated') {
             setUserName(session.data.user.name);
             setImage(session.data.user.image);
+             fetch('/api/profile').then(response => {
+                response.json().then(data => {
+                    setPhone(data.phone);
+                    setStreetAddress(data.streetAddress);
+                    setPostalCode(data.postalCode);
+                    setCity(data.city);
+                    setCountry(data.country);
+                    setIsAdmin(data.admin);
+                    setProfileFetched(true);
+                })
+             });
         }
     }, [session, status]);
 
     async function handleProfileInfoUpdate(ev){
         ev.preventDefault();
-        setSaved(false);
-        setIsSaving(true);
-        const response = await fetch('/api/profile', {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name: userName}),
+        const savingPromise = new Promise(async(resolve, reject) => {
+            const response = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: userName, 
+                    image,
+                    streetAddress,
+                    phone,
+                    postalCode,
+                    city,
+                    country
+                }),
+            });
+            if (response.ok)
+                resolve();
+            else
+                reject();
         });
-        setIsSaving(false);
-        if (response.ok){
-            setSaved(true);
-        }
+
+        await toast.promise(savingPromise, {
+            loading: 'Saving',
+            success: 'Profile saved!',
+            error: 'Error',
+        })
+        
     }
 
     async function handleFileChange(ev){
@@ -39,19 +78,37 @@ export default function ProfilePage(){
         if (files?.length === 1){
             const data = new FormData;
             data.set('file', files[0]);
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: data,
-                // headers: {'Content-Type': 'multipart/form-data'}
+            // toast('Uploading...');
+
+            const uploadPromise = fetch('/api/upload', {
+                    method: 'POST',
+                    body: data,
+                }).then(response => {
+                    if (response.ok) {
+                        response.json().then(link => {
+                            setImage(link);
+                            resolve();
+                        })
+                    
+                    } 
+                    throw new Error('Something went wrong'); 
+                });
+                
+            
+
+            await toast.promise(uploadPromise, {
+                loading: 'Uploading',
+                success: 'Upload complete',
+                error: 'Upload error',
             });
-            // console.log(response);
-            const link = await response.json();
-            setImage(link);
+        
+    
+            
         }
     }
 
 
-    if (status === 'loading') {
+    if (status === 'loading' || !profileFetched) {
         return 'Loading...';
     }
 
@@ -63,26 +120,14 @@ export default function ProfilePage(){
 
     return (
         <section className="mt-8">
-            <h1 className=" text-center text-primary text-4xl mb-4">
-                Profile
-            </h1>
+            <UserTabs isAdmin={isAdmin}></UserTabs>
             
-            <div className="max-w-md mx-auto ">
-                {saved && (
-                    <h2 className=" text-center bg-green-100 p-4 ounded-lg border border-green-300">
-                        Profile Saved!
-                    </h2>
-                )}
-                {IsSaving && (
-                    <h2 className=" text-center bg-blue-100 p-4 ounded-lg border border-blue-300">
-                        Saving...
-                    </h2>
-                )}
-                <div className="flex gap-4 items-center">
+            <div className="max-w-md mx-auto mt-8">
+                <div className="flex gap-4">
                     <div>
                         <div className="p-2 rounded-lg relative max-w-[120px]">
                             {image && (
-                                <img className=" rounded-lg w-full h-full mb-1" src={image}  alt={'avatar'}  />
+                                <Image className="rounded-lg h-full w-full mb-1" src={image} width={250} height={250} alt={'avatar'}  />
                         
                             )}
                             <label>
@@ -92,9 +137,40 @@ export default function ProfilePage(){
                         </div>
                     </div>
                     <form className="grow" onSubmit={handleProfileInfoUpdate}>
+                        <label>
+                            First and last name
+                        </label>
                         <input type="text" placeholder="First and last name"
                          value={userName} onChange={ev => setUserName(ev.target.value)} />
+                        <label>
+                            Email
+                        </label>
                         <input type="email" disabled={true} value={session.data.user.email} />
+                        <label>
+                            Phone
+                        </label>
+                        <input type="tel" value={phone} onChange={ev => setPhone(ev.target.value)} placeholder="Phone number" />
+                        <label>
+                            Street Address
+                        </label>
+                        <input type="text" value={streetAddress} onChange={ev => setStreetAddress(ev.target.value)} placeholder="Steet address" />
+                        <div className="flex gap-4">
+                            <div>
+                                <label>Postal Code</label>
+                                <input 
+                                type="text" value={postalCode} onChange={ev => setPostalCode(ev.target.value)} placeholder="Postal code" />
+                           
+                            </div>
+                            <div>
+                                <label>City</label>
+                                <input 
+                                type="text" value={city} onChange={ev => setCity(ev.target.value)} placeholder="City" />
+                            </div>
+                             
+                        </div>
+                        <label>Country</label>
+                        <input type="text" value={country} onChange={ev => setCountry(ev.target.value)} placeholder="Country" />
+                        
                         <button type="submit">Save</button>
                     </form>
                 </div>
