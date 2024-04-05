@@ -1,6 +1,7 @@
-import {isAdmin} from "@/app/api/auth/[...nextauth]/route";
-import { MenuItem } from "../../models/MenuItem";
 
+
+import { MenuItem } from "../../../models/MenuItem";
+import {isAdmin} from "../../api/auth/[...nextauth]/route";
 import mongoose from "mongoose";
 
 export async function POST(req) {

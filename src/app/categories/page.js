@@ -1,5 +1,5 @@
 'use client';
-import DeleteButton from "../../components/layout/DeleteButton";
+import DeleteButton from "@/components/DeleteButton";
 import UserTabs from "@/components/layout/UserTabs";
 import {useEffect, useState} from "react";
 import {useProfile} from "@/components/UseProfile";
@@ -78,7 +78,7 @@ export default function CategoriesPage() {
     return 'Loading user info...';
   }
 
-  if (!profileData) {
+  if (!profileData.admin) {
     return 'Not an admin';
   }
 

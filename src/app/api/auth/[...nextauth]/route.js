@@ -1,12 +1,11 @@
 
-import {User} from "@/app/models/User.js";
+import {User} from "@/models/User.js";
 import clientPromise from "@/libs/mongoConnect";
-// import mongoose from "mongoose";
 import * as mongoose from "mongoose";
-import NextAuth from "next-auth";
+import NextAuth, { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-
+import { UserInfo } from "@/models/UserInfo";
 import bcrypt from 'bcrypt';
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 
@@ -45,6 +44,19 @@ export const authOptions = {
     ]
 };
 
+export async function isAdmin() {
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email;
+  if (!userEmail) {
+    return false;
+  }
+  const userInfo = await UserInfo.findOne({email:userEmail});
+  if (!userInfo) {
+    return false;
+  }
+  return userInfo.admin;
+}
+
 const handler = NextAuth(authOptions);
 
-export {handler as GET, handler as POST}
+export { handler as GET, handler as POST }
